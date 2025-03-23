@@ -1,9 +1,6 @@
 <?php
-$conn = new mysqli("localhost", "root", "", "mangyan");
+require 'config.php'; // Database connection
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
 
 $tagalogTranslation = '';
 $mangyanTranslation = '';
@@ -219,7 +216,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </div>
 
     <footer>
-        <p>&copy; 2023 Translation App</p>
-    </footer>
+    <p>&copy; 2023 Translation App</p>
+    <p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
+</footer>
+
 </body>
 </html>
