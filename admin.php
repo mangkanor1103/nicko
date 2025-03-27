@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
 
 if (isset($_POST['logout'])) {
     session_destroy(); // Destroy the session
-    header("Location: login.php"); // Redirect to login page
+    header("Location: index.php"); // Redirect to login page
     exit();
 }
 

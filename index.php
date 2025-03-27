@@ -1,37 +1,43 @@
 <?php
 require 'config.php'; // Database connection
 
-
 $tagalogTranslation = '';
 $mangyanTranslation = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (isset($_GET['tagalog_word'])) {
-        $word = $_GET['tagalog_word'];
-        $query = "SELECT * FROM translations WHERE tagalog_word='$word'";
-        $result = $conn->query($query);
+// Function to get translations word by word
+function translateSentence($conn, $sentence, $sourceColumn, $targetColumn) {
+    $words = explode(" ", trim($sentence)); // Split sentence into words
+    $translatedWords = [];
+
+    $stmt = $conn->prepare("SELECT $targetColumn FROM translations WHERE $sourceColumn = ?");
+
+    foreach ($words as $word) {
+        $stmt->bind_param("s", $word);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         if ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                $mangyanTranslation .= "Mangyan: " . $row['mangyan_word'] . " (" . $row['dialect'] . ")<br>";
-            }
+            $row = $result->fetch_assoc();
+            $translatedWords[] = htmlspecialchars($row[$targetColumn]); // Prevent XSS
         } else {
-            $mangyanTranslation = "Walang nahanap na translation.";
+            $translatedWords[] = htmlspecialchars($word); // Keep original word if not found
         }
     }
 
-    if (isset($_GET['mangyan_word'])) {
-        $word = $_GET['mangyan_word'];
-        $query = "SELECT * FROM translations WHERE mangyan_word='$word'";
-        $result = $conn->query($query);
+    $stmt->close();
+    return implode(" ", $translatedWords); // Reconstruct translated sentence
+}
 
-        if ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                $tagalogTranslation .= "Tagalog: " . $row['tagalog_word'] . " (" . $row['dialect'] . ")<br>";
-            }
-        } else {
-            $tagalogTranslation = "Walang nahanap na translation.";
-        }
+// Process GET requests
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (!empty($_GET['tagalog_sentence'])) {
+        $tagalogSentence = $_GET['tagalog_sentence'];
+        $mangyanTranslation = translateSentence($conn, $tagalogSentence, 'tagalog_word', 'mangyan_word');
+    }
+
+    if (!empty($_GET['mangyan_sentence'])) {
+        $mangyanSentence = $_GET['mangyan_sentence'];
+        $tagalogTranslation = translateSentence($conn, $mangyanSentence, 'mangyan_word', 'tagalog_word');
     }
 }
 ?>
@@ -46,126 +52,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #0d0d0d; /* Dark background */
-            color: #e0e0e0; /* Light text color */
+            background-color: #ffffff; /* White background */
+            color: #006600; /* Dark green text color */
             margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            min-height: 100vh; /* Full height for footer positioning */
+            min-height: 100vh;
         }
-
         header {
-            background: #1a1a1a; /* Darker header */
-            color: #00ff00; /* Neon green text */
+            background: #008000; /* Green header */
+            color: #ffffff; /* White text */
             padding: 20px 0;
             text-align: center;
             margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); /* Neon glow effect */
-            position: relative;
+            box-shadow: 0 0 10px rgba(0, 128, 0, 0.5);
         }
-
         .container {
-            flex: 1; /* Allow the container to grow */
+            flex: 1;
             display: flex;
-            justify-content: space-between; /* Align items to the left and right */
+            justify-content: space-between;
             align-items: flex-start;
             max-width: 1200px;
             margin: 0 auto;
-            overflow-y: auto; /* Allow scrolling */
+            overflow-y: auto;
         }
-
         .form-box {
-            background: #1a1a1a; /* Dark background for forms */
+            background: #f0fff0; /* Light greenish background */
             padding: 20px;
             border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); /* Neon glow effect */
-            width: 45%; /* Adjust width as needed */
-            margin: 10px; /* Space between forms */
-            position: relative;
-            overflow: hidden; /* Hide overflow for animations */
+            box-shadow: 0 0 10px rgba(0, 128, 0, 0.5);
+            width: 45%;
+            margin: 10px;
         }
-
         .input-container {
             position: relative;
             margin-bottom: 20px;
         }
-
         input[type="text"] {
-            width: calc(100% - 22px);
-            padding: 10px 40px; /* Add padding for icons */
+            width: 100%; /* Full width */
+            padding: 12px; /* Adjust padding for better spacing */
             margin-bottom: 10px;
-            border: 1px solid #00ff00; /* Neon green border */
+            border: 1px solid #008000;
             border-radius: 5px;
-            background: #121212; /* Dark input background */
-            color: #00ff00; /* Neon green text */
+            background: #ffffff;
+            color: #008000;
+            box-sizing: border-box; /* Prevents overflow */
         }
-
         .icon {
             position: absolute;
             left: 10px;
             top: 50%;
             transform: translateY(-50%);
-            color: #00ff00; /* Neon green icon color */
+            color: #008000;
             font-size: 20px;
         }
-
         button {
-            background: #00ff00; /* Neon green button */
-            color: #121212; /* Dark text color */
+            background: #008000;
+            color: #ffffff;
             border: none;
             padding: 10px 15px;
             border-radius: 5px;
             cursor: pointer;
-            width: 100%; /* Full width button */
-            transition: background 0.3s; /* Smooth transition */
+            width: 100%;
+            transition: background 0.3s;
         }
-
         button:hover {
-            background: #00cc00; /* Darker green on hover */
+            background: #006600;
         }
-
         .result {
             margin-top: 20px;
             padding: 10px;
-            background: rgba(0, 255, 0, 0.1); /* Light neon green background */
+            background: rgba(0, 128, 0, 0.1);
             border-radius: 5px;
         }
-
-        /* Animation for moving icons */
-        .moving-icon {
-            position: absolute;
-            font-size: 50px; /* Icon size */
-            color: #00ff00; /* Neon green color */
-            animation: move 10s linear infinite;
-        }
-
-        @keyframes move {
-            0% { transform: translate(0, 0); }
-            20% { transform: translate(100px, 50px); }
-            40% { transform: translate(0, 100px); }
-            60% { transform: translate(-100px, 50px); }
-            80% { transform: translate(50px, 0); }
-            100% { transform: translate(0, 0); }
-        }
-
         footer {
             text-align: center;
             padding: 10px 0;
-            background: #1a1a1a; /* Dark footer */
-            color: #00ff00; /* Neon green text */
-            box-shadow: 0 -1px 10px rgba(0, 255, 0, 0.5); /* Neon glow effect */
+            background: #008000;
+            color: #ffffff;
+            box-shadow: 0 -1px 10px rgba(0, 128, 0, 0.5);
         }
-
+        .moving-icon {
+            position: absolute;
+            font-size: 50px;
+            color: rgba(0, 128, 0, 0.5);
+            animation: move 10s linear infinite;
+        }
+        @keyframes move {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100vh); }
+        }
         @media (max-width: 768px) {
             .container {
-                flex-direction: column; /* Stack forms on smaller screens */
+                flex-direction: column;
             }
-
             .form-box {
-                width: 100%; /* Full width on small screens */
-                margin: 0; /* Remove margin */
-                margin-bottom: 20px; /* Space between stacked forms */
+                width: 100%;
+                margin: 0;
+                margin-bottom: 20px;
             }
         }
     </style>
@@ -184,8 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             <h2>Tagalog to Mangyan Translation</h2>
             <form action="" method="GET">
                 <div class="input-container">
-                    <i class="fas fa-comment icon"></i>
-                    <input type="text" name="tagalog_word" placeholder="Enter Tagalog word..." required>
+                    <i class="fas fa-language icon"></i>
+                    <input type="text" name="tagalog_sentence" placeholder="Enter Tagalog sentence...">
                 </div>
                 <button type="submit">Translate</button>
             </form>
@@ -201,11 +186,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             <h2>Mangyan to Tagalog Translation</h2>
             <form action="" method="GET">
                 <div class="input-container">
-                    <i class="fas fa-comment-dots icon"></i>
-                    <input type="text" name="mangyan_word" placeholder="Enter Mangyan word..." required>
+                    <i class="fas fa-language icon"></i>
+                    <input type="text" name="mangyan_sentence" placeholder="Enter Mangyan sentence...">
                 </div>
                 <button type="submit">Translate</button>
             </form>
+
             <div class="result">
                 <?php if ($tagalogTranslation): ?>
                     <h3>Translation Result:</h3>
@@ -216,9 +202,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </div>
 
     <footer>
-    <p>&copy; 2023 Translation App</p>
-    <p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
-</footer>
+        <p>&copy; 2023 Translation App</p>
+        <p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
+    </footer>
 
 </body>
 </html>
