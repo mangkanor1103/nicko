@@ -63,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mangyan-Tagalog Translator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -171,6 +173,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 margin-bottom: 20px;
             }
         }
+        .input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    padding-right: 35px; /* Space for the mic */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.mic-icon {
+    position: absolute;
+    right: 10px;
+    font-size: 18px;
+    color: #666;
+    cursor: pointer;
+}
+
+.mic-icon:hover {
+    color: #000;
+}
+
     </style>
 </head>
 <body>
@@ -186,14 +216,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         <div class="form-box">
             <h2>Tagalog to Mangyan Translation</h2>
             <form id="tagalogForm" action="" method="GET">
-                <div class="input-container">
-                    <input type="text" id="tagalogInput" name="tagalog_sentence" placeholder="Enter Tagalog sentence..." required>
-                    <button type="button" onclick="startRecognition('tagalogInput', 'tl-PH', 'tagalogForm')">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                </div>
-                <button type="submit">Translate</button>
-            </form>
+    <div class="input-container">
+        <input type="text" id="tagalogInput" name="tagalog_sentence" placeholder="Enter Tagalog sentence..." required>
+        <i class="fas fa-microphone mic-icon" onclick="startRecognition('tagalogInput', 'tl-PH', 'tagalogForm')"></i>
+    </div>
+    <button type="submit">Translate</button>
+    <button type="button" onclick="speakText('<?php echo $mangyanTranslation; ?>', 'mangyan-lang')">
+        <i class="fas fa-volume-up"></i> Listen
+    </button>
+</form>
+
             <div class="result">
                 <?php if ($mangyanTranslation): ?>
                     <h3>Translation Result:</h3>
@@ -207,14 +239,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         <div class="form-box">
             <h2>Mangyan to Tagalog Translation</h2>
             <form id="mangyanForm" action="" method="GET">
-                <div class="input-container">
-                    <input type="text" id="mangyanInput" name="mangyan_sentence" placeholder="Enter Mangyan sentence..." required>
-                    <button type="button" onclick="startRecognition('mangyanInput', 'mangyan-lang', 'mangyanForm')">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                </div>
-                <button type="submit">Translate</button>
-            </form>
+    <div class="input-container">
+        <input type="text" id="mangyanInput" name="mangyan_sentence" placeholder="Enter Mangyan sentence..." required>
+        <i class="fas fa-microphone mic-icon" onclick="startRecognition('mangyanInput', 'tl-PH', 'mangyanForm')"></i>
+    </div>
+    <button type="submit">Translate</button>
+    <button type="button" onclick="speakText('<?php echo $tagalogTranslation; ?>', 'tl-PH')">
+        <i class="fas fa-volume-up"></i> Listen
+    </button>
+</form>
             <div class="result">
                 <?php if ($tagalogTranslation): ?>
                     <h3>Translation Result:</h3>
@@ -255,6 +288,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
             recognition.start();
         }
+        function speakText(text, lang) {
+    if (!text) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Oops!',
+            text: 'No text available to speak.',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    let synth = window.speechSynthesis;
+    let utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang; // Set language dynamically
+    synth.speak(utterance);
+}
+
+
     </script>
 </body>
-</html>s
+</html>
