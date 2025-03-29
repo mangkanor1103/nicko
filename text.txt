@@ -3,55 +3,40 @@ require 'config.php'; // Database connection
 
 $tagalogTranslation = '';
 $mangyanTranslation = '';
-$errorMessageTagalogToMangyan = '';
-$errorMessageMangyanToTagalog = '';
 
 // Function to get translations word by word
 function translateSentence($conn, $sentence, $sourceColumn, $targetColumn) {
-    $words = explode(" ", trim($sentence)); // Split sentence into words
-    $translatedWords = [];
-    $missingWordCount = 0; // Count of missing words
+  $words = explode(" ", trim($sentence));
+  $translatedWords = [];
 
-    $stmt = $conn->prepare("SELECT $targetColumn FROM translations WHERE $sourceColumn = ?");
+  $stmt = $conn->prepare("SELECT $targetColumn FROM translations WHERE $sourceColumn = ?");
 
-    foreach ($words as $word) {
-        $stmt->bind_param("s", $word);
-        $stmt->execute();
-        $result = $stmt->get_result();
+  foreach ($words as $word) {
+      $stmt->bind_param("s", $word);
+      $stmt->execute();
+      $result = $stmt->get_result();
 
-        if ($result->num_rows > 0) {
-            $row = $result->fetch_assoc();
-            $translatedWords[] = htmlspecialchars($row[$targetColumn]); // Prevent XSS
-        } else {
-            $translatedWords[] = htmlspecialchars($word); // Keep original word if not found
-            $missingWordCount++; // Increment missing word count
-        }
-    }
+      if ($result->num_rows > 0) {
+          $row = $result->fetch_assoc();
+          $translatedWords[] = htmlspecialchars($row[$targetColumn]); // Add translated word
+      }
+  }
 
-    $stmt->close();
-    if ($missingWordCount > 1) {
-        return ['', true]; // Return empty if more than one word is missing
-    } else {
-        return [implode(" ", $translatedWords), false]; // Return translated sentence and no missing words
-    }
+  $stmt->close();
+  return implode(" ", $translatedWords); // Reconstruct sentence (skip untranslated words)
 }
+
 
 // Process GET requests
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (!empty($_GET['tagalog_sentence'])) {
         $tagalogSentence = $_GET['tagalog_sentence'];
-        list($mangyanTranslation, $noTranslation) = translateSentence($conn, $tagalogSentence, 'tagalog_word', 'mangyan_word');
-        if ($noTranslation) {
-            $errorMessageTagalogToMangyan = "No translation found for the given Tagalog sentence.";
-        }
+        $mangyanTranslation = translateSentence($conn, $tagalogSentence, 'tagalog_word', 'mangyan_word');
     }
 
     if (!empty($_GET['mangyan_sentence'])) {
         $mangyanSentence = $_GET['mangyan_sentence'];
-        list($tagalogTranslation, $noTranslation) = translateSentence($conn, $mangyanSentence, 'mangyan_word', 'tagalog_word');
-        if ($noTranslation) {
-            $errorMessageMangyanToTagalog = "No translation found for the given Mangyan sentence.";
-        }
+        $tagalogTranslation = translateSentence($conn, $mangyanSentence, 'mangyan_word', 'tagalog_word');
     }
 }
 ?>
@@ -110,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             border: 1px solid #008000;
             border-radius: 5px;
             background: #ffffff;
-            color: #008 000;
+            color: #008000;
             box-sizing: border-box; /* Prevents overflow */
         }
         .icon {
@@ -139,10 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             padding: 10px;
             background: rgba(0, 128, 0, 0.1);
             border-radius: 5px;
-        }
-        .error {
-            color: red; /* Error message color */
-            margin-top: 10px;
         }
         footer {
             text-align: center;
@@ -186,41 +167,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         <div class="form-box">
             <h2>Tagalog to Mangyan Translation</h2>
             <form id="tagalogForm" action="" method="GET">
-                <div class="input-container">
-                    <input type="text" id="tagalogInput" name="tagalog_sentence" placeholder="Enter Tagalog sentence..." required>
-                    <button type="button" onclick="startRecognition('tagalogInput', 'tl-PH', 'tagalogForm')">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                </div>
-                <button type="submit">Translate</button>
-            </form>
+    <div class="input-container">
+        <i class="fas fa-language icon"></i>
+        <input type="text" id="tagalogInput" name="tagalog_sentence" placeholder="Enter Tagalog sentence...">
+        <button type="button" onclick="startRecognition('tagalogInput', 'tagalogForm')">
+            <i class="fas fa-microphone"></i>
+        </button>
+    </div>
+</form>
+
             <div class="result">
                 <?php if ($mangyanTranslation): ?>
                     <h3>Translation Result:</h3>
                     <p><?php echo $mangyanTranslation; ?></p>
-                <?php else: ?>
-                    <p class="error"><?php echo $errorMessageTagalogToMangyan; ?></p>
                 <?php endif; ?>
             </div>
         </div>
 
         <div class="form-box">
             <h2>Mangyan to Tagalog Translation</h2>
-            <form id="mangyanForm" action="" method="GET">
+            <form action="" method="GET">
                 <div class="input-container">
-                    <input type="text" id="mangyanInput" name="mangyan_sentence" placeholder="Enter Mangyan sentence..." required>
-                    <button type="button" onclick="startRecognition('mangyanInput', 'mangyan-lang', 'mangyanForm')">
-                        <i class="fas fa-microphone"></i>
-                    </button>
+                    <i class="fas fa-language icon"></i>
+                    <input type="text" name="mangyan_sentence" placeholder="Enter Mangyan sentence...">
                 </div>
                 <button type="submit">Translate</button>
             </form>
+
             <div class="result">
                 <?php if ($tagalogTranslation): ?>
                     <h3>Translation Result:</h3>
                     <p><?php echo $tagalogTranslation; ?></p>
-                <?php else: ?>
-                    <p class="error"><?php echo $errorMessageMangyanToTagalog; ?></p>
                 <?php endif; ?>
             </div>
         </div>
@@ -228,33 +205,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     <footer>
         <p>&copy; 2023 Translation App</p>
- <p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
+        <p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
     </footer>
 
+
     <script>
-        function startRecognition(inputId, lang, formId) {
-            let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert('Speech recognition is not supported in this browser. Try using Chrome or Edge.');
-                return;
-            }
+function startRecognition(inputId, formId) {
+    let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert('Speech recognition is not supported in this browser. Try using Chrome or Edge.');
+        return;
+    }
 
-            let recognition = new SpeechRecognition();
-            recognition.lang = lang; // Set language based on the input
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
+    let recognition = new SpeechRecognition();
+    recognition.lang = 'tl-PH'; // Set to Tagalog (Filipino)
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-            recognition.onresult = function(event) {
-                document.getElementById(inputId).value = event.results[0][0].transcript;
-                document.getElementById(formId).submit(); // Auto-submit after speech
-            };
+    recognition.onresult = function(event) {
+        document.getElementById(inputId).value = event.results[0][0].transcript;
+        document.getElementById(formId).submit(); // Auto-submit after speech
+    };
 
-            recognition.onerror = function(event) {
-                console.error('Speech recognition error:', event);
-            };
+    recognition.onerror = function(event) {
+        console.error('Speech recognition error:', event);
+    };
 
-            recognition.start();
-        }
-    </script>
+    recognition.start();
+}
+
+</script>
 </body>
-</html>s
+</html>
