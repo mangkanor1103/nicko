@@ -63,8 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mangyan-Tagalog Translator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -132,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             cursor: pointer;
             width: 100%;
             transition: background 0.3s;
+            margin-top: 10px;
         }
         button:hover {
             background: #006600;
@@ -225,7 +224,6 @@ input[type="text"] {
         <i class="fas fa-volume-up"></i> Listen
     </button>
 </form>
-
             <div class="result">
                 <?php if ($mangyanTranslation): ?>
                     <h3>Translation Result:</h3>
@@ -261,7 +259,7 @@ input[type="text"] {
 
     <footer>
         <p>&copy; 2023 Translation App</p>
- <p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
+<p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
     </footer>
 
     <script>
@@ -305,7 +303,6 @@ input[type="text"] {
     utterance.lang = lang; // Set language dynamically
     synth.speak(utterance);
 }
-
 
     </script>
 </body>
