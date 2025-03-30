@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <style>
 body {
     font-family: Arial, sans-serif;
-    background-color:  #008000;
+    background-image: url(1.jpg);
     background-size: cover; /* Ensures the image covers the entire screen */
     background-position: center; /* Centers the image */
     background-repeat: no-repeat; /* Prevents image tiling */
@@ -80,8 +80,7 @@ body {
 }
 
         header {
-            background-color: wheat;
-            color:  #008000;
+            background: #f0fff0; /* Light greenish background */
             padding: 20px 0;
             text-align: center;
             margin-bottom: 20px;
@@ -153,8 +152,8 @@ body {
         footer {
             text-align: center;
             padding: 10px 0;
-            background-image: url(mangyan.png);
-            color: #ffffff;
+            background: #f0fff0; /* Light greenish background */
+            color: #006600; /* Dark green text color */
             box-shadow: 0 -1px 10px rgba(0, 128, 0, 0.5);
         }
         .moving-icon {
@@ -264,7 +263,7 @@ input[type="text"] {
 
     <footer>
         <p>&copy; 2023 Translation App</p>
-<p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
+<p><a href="admin.php" style="    color: #006600; text-decoration: none;">Add Another Translation</a></p>
     </footer>
 
     <script>
