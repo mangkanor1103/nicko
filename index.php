@@ -64,19 +64,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <title>Mangyan-Tagalog Translator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #ffffff; /* White background */
-            color: #006600; /* Dark green text color */
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+body {
+    font-family: Arial, sans-serif;
+    background-color:  #008000;
+    background-size: cover; /* Ensures the image covers the entire screen */
+    background-position: center; /* Centers the image */
+    background-repeat: no-repeat; /* Prevents image tiling */
+    background-attachment: fixed; /* Keeps the image fixed when scrolling */
+    color: #006600; /* Dark green text color */
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
         header {
-            background: #008000; /* Green header */
-            color: #ffffff; /* White text */
+            background-color: wheat;
+            color:  #008000;
             padding: 20px 0;
             text-align: center;
             margin-bottom: 20px;
@@ -148,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         footer {
             text-align: center;
             padding: 10px 0;
-            background: #008000;
+            background-image: url(mangyan.png);
             color: #ffffff;
             box-shadow: 0 -1px 10px rgba(0, 128, 0, 0.5);
         }
@@ -156,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             position: absolute;
             font-size: 50px;
             color: rgba(0, 128, 0, 0.5);
-            animation: move 10s linear infinite;
+            animation: move 2s linear infinite;
         }
         @keyframes move {
             0% { transform: translateY(0); }
