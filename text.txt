@@ -1,300 +1,218 @@
-<?php
-require 'config.php'; // Database connection
-
-$tagalogTranslation = '';
-$mangyanTranslation = '';
-$errorMessageTagalogToMangyan = '';
-$errorMessageMangyanToTagalog = '';
-
-// Function to get translations word by word
-function translateSentence($conn, $sentence, $sourceColumn, $targetColumn) {
-    $stmt = $conn->prepare("SELECT $targetColumn FROM translations WHERE $sourceColumn = ?");
-    $stmt->bind_param("s", $sentence);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        return htmlspecialchars($row[$targetColumn]); // Return the translated sentence
-    } else {
-        return ''; // Return empty if no translation found
-    }
-}
-
-
-
-// Process GET requests
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (!empty($_GET['tagalog_sentence'])) {
-        $tagalogSentence = $_GET['tagalog_sentence'];
-        list($mangyanTranslation, $noTranslation) = translateSentence($conn, $tagalogSentence, 'tagalog_word', 'mangyan_word');
-        if ($noTranslation) {
-            $errorMessageTagalogToMangyan = "No translation found for the given Tagalog sentence.";
-        }
-    }
-
-    if (!empty($_GET['mangyan_sentence'])) {
-        $mangyanSentence = $_GET['mangyan_sentence'];
-        list($tagalogTranslation, $noTranslation) = translateSentence($conn, $mangyanSentence, 'mangyan_word', 'tagalog_word');
-        if ($noTranslation) {
-            $errorMessageMangyanToTagalog = "No translation found for the given Mangyan sentence.";
-        }
-    }
-}
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mangyan-Tagalog Translator</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+    <title>Mangyan Translator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #ffffff; /* White background */
-            color: #006600; /* Dark green text color */
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+        .keyboard-key {
+            @apply bg-green-600 hover:bg-green-500 active:bg-green-400
+                   text-white rounded-lg p-2
+                   transition-all duration-150 ease-in-out
+                   flex items-center justify-center
+                   shadow-lg hover:shadow-xl
+                   transform hover:-translate-y-0.5 active:translate-y-0;
         }
-        header {
-            background: #008000; /* Green header */
-            color: #ffffff; /* White text */
-            padding: 20px 0;
-            text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0, 128, 0, 0.5);
-        }
-        .container {
-            flex: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            max-width: 1200px;
-            margin: 0 auto;
-            overflow-y: auto;
-        }
-        .form-box {
-            background: #f0fff0; /* Light greenish background */
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 128, 0, 0.5);
-            width: 45%;
-            margin: 10px;
-        }
-        .input-container {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        input[type="text"] {
-            width: 100%; /* Full width */
-            padding: 12px; /* Adjust padding for better spacing */
-            margin-bottom: 10px;
-            border: 1px solid #008000;
-            border-radius: 5px;
-            background: #ffffff;
-            color: #008 000;
-            box-sizing: border-box; /* Prevents overflow */
-        }
-        .icon {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #008000;
-            font-size: 20px;
-        }
-        button {
-            background: #008000;
-            color: #ffffff;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.3s;
-            margin-top: 20px;
-        }
-        button:hover {
-            background: #006600;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 10px;
-            background: rgba(0, 128, 0, 0.1);
-            border-radius: 5px;
-        }
-        .error {
-            color: red; /* Error message color */
-            margin-top: 10px;
-        }
-        footer {
-            text-align: center;
-            padding: 10px 0;
-            background: #008000;
-            color: #ffffff;
-            box-shadow: 0 -1px 10px rgba(0, 128, 0, 0.5);
-        }
-        .moving-icon {
-            position: absolute;
-            font-size: 50px;
-            color: rgba(0, 128, 0, 0.5);
-            animation: move 10s linear infinite;
-        }
-        @keyframes move {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-100vh); }
-        }
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-            .form-box {
-                width: 100%;
-                margin: 0;
-                margin-bottom: 20px;
-            }
-        }
-        .input-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    width: 100%;
-}
 
-input[type="text"] {
-    width: 100%;
-    padding: 10px;
-    padding-right: 35px; /* Space for the mic */
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 16px;
-}
+        .keyboard-key img {
+            @apply transition-transform duration-150 ease-in-out;
+        }
 
-.mic-icon {
-    position: absolute;
-    right: 10px;
-    font-size: 18px;
-    color: #666;
-    cursor: pointer;
-}
+        .keyboard-key:hover img {
+            @apply transform scale-110;
+        }
 
-.mic-icon:hover {
-    color: #000;
-}
+        .keyboard-key:active img {
+            @apply transform scale-95;
+        }
 
+        .input-field {
+            @apply w-full p-4 border rounded-lg shadow-inner
+                   bg-white focus:ring-2 focus:ring-green-400
+                   focus:outline-none transition-all duration-200;
+        }
+
+        .card {
+            @apply bg-white rounded-xl shadow-lg p-6
+                   border border-gray-200 hover:shadow-xl
+                   transition-shadow duration-300;
+        }
+
+        .translation-area {
+            @apply p-4 bg-white rounded-lg border border-gray-200 shadow-md h-32;
+        }
     </style>
 </head>
-<body>
-    <header>
-        <h1>Mangyan-Tagalog Translator</h1>
-        <i class="fas fa-language moving-icon" style="top: 10px; left: 10px;"></i>
-        <i class="fas fa-language moving-icon" style="top: 10px; right: 10px;"></i>
-        <i class="fas fa-globe moving-icon" style="top: 50px; left: 50px;"></i>
-        <i class="fas fa-globe moving-icon" style="top: 50px; right: 50px;"></i>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-green-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-3xl font-bold text-center">Mangyan Script Translator</h1>
+        </div>
     </header>
 
-    <div class="container">
-        <div class="form-box">
-            <h2>Tagalog to Mangyan Translation</h2>
-            <form id="tagalogForm" action="" method="GET">
-    <div class="input-container">
-        <input type="text" id="tagalogInput" name="tagalog_sentence" placeholder="Enter Tagalog sentence..." required>
-        <i class="fas fa-microphone mic-icon" onclick="startRecognition('tagalogInput', 'tl-PH', 'tagalogForm')"></i>
-    </div>
-    <button type="submit">Translate</button>
-    <button type="button" onclick="speakText('<?php echo $mangyanTranslation; ?>', 'mangyan-lang')">
-        <i class="fas fa-volume-up"></i> Listen
-    </button>
-</form>
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col gap-4 max-w-4xl mx-auto">
+            <!-- Input and Translation Area -->
+            <div class="flex gap-8">
+                <!-- Input Text Area -->
+                <div class="flex-1">
+                    <div class="mb-6">
+                        <label for="input_text" class="block text-gray-700 text-sm font-bold mb-2">Enter Text:</label>
+                        <textarea id="input_text" class="input-field h-32" placeholder="Type or use the virtual keyboard below..."></textarea>
+                    </div>
+                </div>
 
-            <div class="result">
-                <?php if ($mangyanTranslation): ?>
-                    <h3>Translation Result:</h3>
-                    <p><?php echo $mangyanTranslation; ?></p>
-                <?php else: ?>
-                    <p class="error"><?php echo $errorMessageTagalogToMangyan; ?></p>
-                <?php endif; ?>
+                <!-- Translated Text -->
+                <div class="flex-1">
+                    <h3 class="text-xl font-medium text-gray-600 mb-2">Translation</h3>
+                    <div id="translated_text" class="translation-area"></div>
+                </div>
+            </div>
+
+            <!-- Virtual Keyboard -->
+            <div class="mb-6">
+                <h3 class="text-xl font-medium text-gray-600 mb-4">Virtual Mangyan Keyboard</h3>
+
+                <!-- Keyboard Container -->
+                <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                    <!-- Function Keys Row -->
+                    <div class="flex gap-2 mb-2">
+                        <button onclick="addLetter('A')" class="keyboard-key">
+                            <img src="surat/vowel_a.png" class="w-8 h-8" alt="A">
+                        </button>
+                        <button onclick="addLetter('I')" class="keyboard-key">
+                            <img src="surat/vowel_i.png" class="w-8 h-8" alt="I">
+                        </button>
+                        <button onclick="addLetter('U')" class="keyboard-key">
+                            <img src="surat/vowel_u.png" class="w-8 h-8" alt="U">
+                        </button>
+                    </div>
+
+                    <!-- Main Keyboard Grid -->
+                    <div class="grid grid-cols-10 gap-2">
+                        <!-- First Row -->
+                        <button onclick="addLetter('KA')" class="keyboard-key"><img src="surat/ka.png" class="w-8 h-8" alt="KA"></button>
+                        <button onclick="addLetter('GA')" class="keyboard-key"><img src="surat/ga.png" class="w-8 h-8" alt="GA"></button>
+                        <button onclick="addLetter('NGA')" class="keyboard-key"><img src="surat/nga.png" class="w-8 h-8" alt="NGA"></button>
+                        <button onclick="addLetter('TA')" class="keyboard-key"><img src="surat/ta.png" class="w-8 h-8" alt="TA"></button>
+                        <button onclick="addLetter('DA')" class="keyboard-key"><img src="surat/da.png" class="w-8 h-8" alt="DA"></button>
+                        <button onclick="addLetter('NA')" class="keyboard-key"><img src="surat/na.png" class="w-8 h-8" alt="NA"></button>
+                        <button onclick="addLetter('PA')" class="keyboard-key"><img src="surat/pa.png" class="w-8 h-8" alt="PA"></button>
+                        <button onclick="addLetter('BA')" class="keyboard-key"><img src="surat/ba.png" class="w-8 h-8" alt="BA"></button>
+                        <button onclick="addLetter('MA')" class="keyboard-key"><img src="surat/ma.png" class="w-8 h-8" alt="MA"></button>
+                        <button onclick="backspace()" class="keyboard-key bg-red-600">⌫</button>
+
+                        <!-- Second Row -->
+                        <button onclick="addLetter('KI')" class="keyboard-key"><img src="surat/ki.png" class="w-8 h-8" alt="KI"></button>
+                        <button onclick="addLetter('GI')" class="keyboard-key"><img src="surat/gi.png" class="w-8 h-8" alt="GI"></button>
+                        <button onclick="addLetter('NGI')" class="keyboard-key"><img src="surat/ngi.png" class="w-8 h-8" alt="NGI"></button>
+                        <button onclick="addLetter('TI')" class="keyboard-key"><img src="surat/ti.png" class="w-8 h-8" alt="TI"></button>
+                        <button onclick="addLetter('DI')" class="keyboard-key"><img src="surat/di.png" class="w-8 h-8" alt="DI"></button>
+                        <button onclick="addLetter('NI')" class="keyboard-key"><img src="surat/ni.png" class="w-8 h-8" alt="NI"></button>
+                        <button onclick="addLetter('PI')" class="keyboard-key"><img src="surat/pi.png" class="w-8 h-8" alt="PI"></button>
+                        <button onclick="addLetter('BI')" class="keyboard-key"><img src="surat/bi.png" class="w-8 h-8" alt="BI"></button>
+                        <button onclick="addLetter('MI')" class="keyboard-key"><img src="surat/mi.png" class="w-8 h-8" alt="MI"></button>
+                        <button onclick="addLetter('YI')" class="keyboard-key"><img src="surat/yi.png" class="w-8 h-8" alt="YI"></button>
+
+                        <!-- Third Row -->
+                        <button onclick="addLetter('KU')" class="keyboard-key"><img src="surat/ku.png" class="w-8 h-8" alt="KU"></button>
+                        <button onclick="addLetter('GU')" class="keyboard-key"><img src="surat/gu.png" class="w-8 h-8" alt="GU"></button>
+                        <button onclick="addLetter('NGU')" class="keyboard-key"><img src="surat/ngu.png" class="w-8 h-8" alt="NGU"></button>
+                        <button onclick="addLetter('TU')" class="keyboard-key"><img src="surat/tu.png" class="w-8 h-8" alt="TU"></button>
+                        <button onclick="addLetter('DU')" class="keyboard-key"><img src="surat/du.png" class="w-8 h-8" alt="DU"></button>
+                        <button onclick="addLetter('NU')" class="keyboard-key"><img src="surat/nu.png" class="w-8 h-8" alt="NU"></button>
+                        <button onclick="addLetter('PU')" class="keyboard-key"><img src="surat/pu.png" class="w-8 h-8" alt="PU"></button>
+                        <button onclick="addLetter('BU')" class="keyboard-key"><img src="surat/bu.png" class="w-8 h-8" alt="BU"></button>
+                        <button onclick="addLetter('MU')" class="keyboard-key"><img src="surat/mu.png" class="w-8 h-8" alt="MU"></button>
+                        <button onclick="addLetter('YU')" class="keyboard-key"><img src="surat/yu.png" class="w-8 h-8" alt="YU"></button>
+
+                        <!-- Fourth Row -->
+                        <button onclick="addLetter('RA')" class="keyboard-key"><img src="surat/ra.png" class="w-8 h-8" alt="RA"></button>
+                        <button onclick="addLetter('LA')" class="keyboard-key"><img src="surat/la.png" class="w-8 h-8" alt="LA"></button>
+                        <button onclick="addLetter('WA')" class="keyboard-key"><img src="surat/wa.png" class="w-8 h-8" alt="WA"></button>
+                        <button onclick="addLetter('SA')" class="keyboard-key"><img src="surat/sa.png" class="w-8 h-8" alt="SA"></button>
+                        <button onclick="addLetter('HA')" class="keyboard-key"><img src="surat/ha.png" class="w-8 h-8" alt="HA"></button>
+                        <button onclick="addLetter('RI')" class="keyboard-key"><img src="surat/ri.png" class="w-8 h-8" alt="RI"></button>
+                        <button onclick="addLetter('LI')" class="keyboard-key"><img src="surat/li.png" class="w-8 h-8" alt="LI"></button>
+                        <button onclick="addLetter('WI')" class="keyboard-key"><img src="surat/wi.png" class="w-8 h-8" alt="WI"></button>
+                        <button onclick="addLetter('SI')" class="keyboard-key"><img src="surat/si.png" class="w-8 h-8" alt="SI"></button>
+                        <button onclick="addLetter('HI')" class="keyboard-key"><img src="surat/hi.png" class="w-8 h-8" alt="HI"></button>
+                        
+                    </div>
+
+                    <!-- Bottom Row -->
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button onclick="addLetter(' ')" class="keyboard-key bg-gray-700">Space</button>
+                        <button onclick="translateText()" class="keyboard-key bg-green-600">Translate</button>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="form-box">
-            <h2>Mangyan to Tagalog Translation</h2>
-            <form id="mangyanForm" action="" method="GET">
-    <div class="input-container">
-        <input type="text" id="mangyanInput" name="mangyan_sentence" placeholder="Enter Mangyan sentence..." required>
-        <i class="fas fa-microphone mic-icon" onclick="startRecognition('mangyanInput', 'tl-PH', 'mangyanForm')"></i>
     </div>
-    <button type="submit">Translate</button>
-    <button type="button" onclick="speakText('<?php echo $tagalogTranslation; ?>', 'tl-PH')">
-        <i class="fas fa-volume-up"></i> Listen
-    </button>
-</form>
-            <div class="result">
-                <?php if ($tagalogTranslation): ?>
-                    <h3>Translation Result:</h3>
-                    <p><?php echo $tagalogTranslation; ?></p>
-                <?php else: ?>
-                    <p class="error"><?php echo $errorMessageMangyanToTagalog; ?></p>
-                <?php endif; ?>
-            </div>
+
+    <!-- Footer -->
+    <footer class="bg-green-600 text-white mt-8">
+        <div class="container mx-auto px-4 py-6">
+            <p class="text-center">&copy; 2025 Mangyan Translator | All rights reserved</p>
         </div>
-    </div>
-
-    <footer>
-        <p>&copy; 2023 Translation App</p>
- <p><a href="admin.php" style="color: #00ff00; text-decoration: none;">Add Another Translation</a></p>
     </footer>
 
+    <!-- JavaScript -->
     <script>
-        function startRecognition(inputId, lang, formId) {
-            let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert('Speech recognition is not supported in this browser. Try using Chrome or Edge.');
-                return;
-            }
+        function addLetter(letter) {
+            const inputText = document.getElementById('input_text');
+            const cursorPos = inputText.selectionStart;
+            const textBefore = inputText.value.substring(0, cursorPos);
+            const textAfter = inputText.value.substring(cursorPos);
 
-            let recognition = new SpeechRecognition();
-            recognition.lang = lang; // Set language based on the input
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-
-            recognition.onresult = function(event) {
-                document.getElementById(inputId).value = event.results[0][0].transcript;
-                document.getElementById(formId).submit(); // Auto-submit after speech
-            };
-
-            recognition.onerror = function(event) {
-                console.error('Speech recognition error:', event);
-            };
-
-            recognition.start();
+            inputText.value = textBefore + letter + textAfter;
+            inputText.focus();
+            inputText.setSelectionRange(cursorPos + letter.length, cursorPos + letter.length);
         }
-        function speakText(text, lang) {
-    if (!text) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Oops!',
-            text: 'No text available to speak.',
-            confirmButtonColor: '#3085d6',
-            confirmButtonText: 'OK'
+
+        function backspace() {
+            const inputText = document.getElementById('input_text');
+            const cursorPos = inputText.selectionStart;
+            const textBefore = inputText.value.substring(0, cursorPos - 1);
+            const textAfter = inputText.value.substring(cursorPos);
+
+            inputText.value = textBefore + textAfter;
+            inputText.focus();
+            inputText.setSelectionRange(cursorPos - 1, cursorPos - 1);
+        }
+
+        async function translateText() {
+            const inputText = document.getElementById('input_text').value;
+            const translatedDiv = document.getElementById('translated_text');
+
+            try {
+                const response = await fetch('get_translation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'text=' + encodeURIComponent(inputText)
+                });
+
+                const data = await response.json();
+                translatedDiv.textContent = data.translation || 'Translation not found';
+            } catch (error) {
+                translatedDiv.textContent = 'Error during translation';
+                console.error('Translation error:', error);
+            }
+        }
+
+        // Add keyboard support
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace') {
+                backspace();
+            } else if (e.key === 'Enter') {
+                translateText();
+            }
         });
-        return;
-    }
-
-    let synth = window.speechSynthesis;
-    let utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang; // Set language dynamically
-    synth.speak(utterance);
-}
-
-
     </script>
 </body>
 </html>
