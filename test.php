@@ -1,149 +1,217 @@
-<?php
-// mangyan_translator.php
-
-// Database connection
-$servername = "localhost";  // Change to your database server
-$username = "root";         // Change to your database username
-$password = "";             // Change to your database password
-$dbname = "mangyan";        // Change to your database name
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// Function to get translation from the database
-function getTranslation($word, $conn) {
-    $word = $conn->real_escape_string($word);
-    $sql = "SELECT english, tagalog FROM translation WHERE word = '$word' LIMIT 1";
-    $result = $conn->query($sql);
-
-    if ($result->num_rows > 0) {
-        // Fetch the translation data
-        $row = $result->fetch_assoc();
-        return [
-            'english' => $row['english'],
-            'tagalog' => $row['tagalog']
-        ];
-    } else {
-        return null; // No translation found
-    }
-}
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mangyan Keyboard Translator</title>
-    <!-- Tailwind CSS -->
+    <title>Mangyan Translator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        // Function to add letter and speak it
-        function addLetter(letter) {
-            document.getElementById("mangyan_text").value += letter;
-            const utterance = new SpeechSynthesisUtterance(letter);
-            window.speechSynthesis.speak(utterance);
+    <style>
+        .keyboard-key {
+            @apply bg-green-600 hover:bg-green-500 active:bg-green-400
+                   text-white rounded-lg p-2
+                   transition-all duration-150 ease-in-out
+                   flex items-center justify-center
+                   shadow-lg hover:shadow-xl
+                   transform hover:-translate-y-0.5 active:translate-y-0;
         }
 
-        // Function to backspace
-        function backspace() {
-            const textBox = document.getElementById("mangyan_text");
-            textBox.value = textBox.value.slice(0, -1);
+        .keyboard-key img {
+            @apply transition-transform duration-150 ease-in-out;
         }
 
-        // Function to translate the text in the textbox
-        function translateText() {
-            const text = document.getElementById("mangyan_text").value;
-            const words = text.split(' '); // Split text into words
-            let translation = "";
-
-            // Reset the translation area before starting
-            document.getElementById("translated_text").innerHTML = "";
-
-            // Loop through each word and fetch its translation
-            words.forEach(function(word) {
-                fetchTranslation(word);
-            });
+        .keyboard-key:hover img {
+            @apply transform scale-110;
         }
 
-        // Function to fetch translation from PHP
-        function fetchTranslation(word) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'get_translation.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response) {
-                        const translationDiv = document.getElementById("translated_text");
-                        translationDiv.innerHTML += `
-                            <div class="bg-white shadow-md rounded-lg p-4 mb-4">
-                                <p class="font-semibold text-lg text-gray-800">Word: <span class="text-blue-500">${word}</span></p>
-                                <p class="text-gray-600">English: <span class="font-bold">${response.english}</span></p>
-                                <p class="text-gray-600">Tagalog: <span class="font-bold">${response.tagalog}</span></p>
-                            </div>
-                        `;
-                    } else {
-                        document.getElementById("translated_text").innerHTML += `
-                            <div class="bg-gray-100 p-4 rounded-lg shadow-md mb-4">
-                                <p class="text-gray-600">No translation found for: <span class="font-bold text-red-500">${word}</span></p>
-                            </div>
-                        `;
-                    }
-                }
-            };
-            xhr.send("word=" + word);
+        .keyboard-key:active img {
+            @apply transform scale-95;
         }
-    </script>
+
+        .input-field {
+            @apply w-full p-4 border rounded-lg shadow-inner
+                   bg-white focus:ring-2 focus:ring-green-400
+                   focus:outline-none transition-all duration-200;
+        }
+
+        .card {
+            @apply bg-white rounded-xl shadow-lg p-6
+                   border border-gray-200 hover:shadow-xl
+                   transition-shadow duration-300;
+        }
+
+        .translation-area {
+            @apply p-4 bg-white rounded-lg border border-gray-200 shadow-md h-32;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-green-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-3xl font-bold text-center">Mangyan Script Translator</h1>
+        </div>
+    </header>
 
-    <div class="min-h-screen flex flex-col items-center justify-center py-8">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
-            <h2 class="text-2xl font-semibold text-center text-gray-700 mb-6">Mangyan Keyboard Translator</h2>
-            <h3 class="text-2xl font-semibold text-center text-gray-700 mb-6">Hanuno</h3>
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col gap-4 max-w-4xl mx-auto">
+            <!-- Input and Translation Area -->
+            <div class="flex gap-8">
+                <!-- Input Text Area -->
+                <div class="flex-1">
+                    <div class="mb-6">
+                        <label for="input_text" class="block text-gray-700 text-sm font-bold mb-2">Enter Text:</label>
+                        <textarea id="input_text" class="input-field h-32" placeholder="Type or use the virtual keyboard below..."></textarea>
+                    </div>
+                </div>
 
-
-            <!-- Output Textbox -->
-            <div class="mb-4">
-                <label for="mangyan_text" class="block text-lg font-medium text-gray-600">Output:</label>
-                <input type="text" id="mangyan_text" readonly class="w-full p-2 mt-2 border border-gray-300 rounded-md text-gray-700 focus:ring-2 focus:ring-blue-500">
+                <!-- Translated Text -->
+                <div class="flex-1">
+                    <h3 class="text-xl font-medium text-gray-600 mb-2">Translation</h3>
+                    <div id="translated_text" class="translation-area"></div>
+                </div>
             </div>
 
             <!-- Virtual Keyboard -->
             <div class="mb-6">
-                <h3 class="text-xl font-medium text-gray-600 mb-2">Virtual Mangyan Keyboard</h3>
+                <h3 class="text-xl font-medium text-gray-600 mb-4">Virtual Mangyan Keyboard</h3>
 
-                <!-- Vowels Section -->
-                <div>
-                    <h5 class="font-medium text-gray-600 mb-2">Vowels</h5>
-                    <div class="flex space-x-4">
-                        <img src="surat/vowel_a.png" onclick="addLetter('A')" class="w-12 h-12 cursor-pointer" alt="Vowel A">
-                        <img src="surat/vowel_i.png" onclick="addLetter('I')" class="w-12 h-12 cursor-pointer" alt="Vowel I">
-                        <img src="surat/vowel_u.png" onclick="addLetter('U')" class="w-12 h-12 cursor-pointer" alt="Vowel U">
+                <!-- Keyboard Container -->
+                <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                    <!-- Function Keys Row -->
+                    <div class="flex gap-2 mb-2">
+                        <button onclick="addLetter('A')" class="keyboard-key">
+                            <img src="surat/vowel_a.png" class="w-8 h-8" alt="A">
+                        </button>
+                        <button onclick="addLetter('I')" class="keyboard-key">
+                            <img src="surat/vowel_i.png" class="w-8 h-8" alt="I">
+                        </button>
+                        <button onclick="addLetter('U')" class="keyboard-key">
+                            <img src="surat/vowel_u.png" class="w-8 h-8" alt="U">
+                        </button>
+                    </div>
+
+                    <!-- Main Keyboard Grid -->
+                    <div class="grid grid-cols-10 gap-2">
+                        <!-- First Row -->
+                        <button onclick="addLetter('KA')" class="keyboard-key"><img src="surat/ka.png" class="w-8 h-8" alt="KA"></button>
+                        <button onclick="addLetter('GA')" class="keyboard-key"><img src="surat/ga.png" class="w-8 h-8" alt="GA"></button>
+                        <button onclick="addLetter('NGA')" class="keyboard-key"><img src="surat/nga.png" class="w-8 h-8" alt="NGA"></button>
+                        <button onclick="addLetter('TA')" class="keyboard-key"><img src="surat/ta.png" class="w-8 h-8" alt="TA"></button>
+                        <button onclick="addLetter('DA')" class="keyboard-key"><img src="surat/da.png" class="w-8 h-8" alt="DA"></button>
+                        <button onclick="addLetter('NA')" class="keyboard-key"><img src="surat/na.png" class="w-8 h-8" alt="NA"></button>
+                        <button onclick="addLetter('PA')" class="keyboard-key"><img src="surat/pa.png" class="w-8 h-8" alt="PA"></button>
+                        <button onclick="addLetter('BA')" class="keyboard-key"><img src="surat/ba.png" class="w-8 h-8" alt="BA"></button>
+                        <button onclick="addLetter('MA')" class="keyboard-key"><img src="surat/ma.png" class="w-8 h-8" alt="MA"></button>
+                        <button onclick="backspace()" class="keyboard-key bg-red-600">⌫</button>
+
+                        <!-- Second Row -->
+                        <button onclick="addLetter('KI')" class="keyboard-key"><img src="surat/ki.png" class="w-8 h-8" alt="KI"></button>
+                        <button onclick="addLetter('GI')" class="keyboard-key"><img src="surat/gi.png" class="w-8 h-8" alt="GI"></button>
+                        <button onclick="addLetter('NGI')" class="keyboard-key"><img src="surat/ngi.png" class="w-8 h-8" alt="NGI"></button>
+                        <button onclick="addLetter('TI')" class="keyboard-key"><img src="surat/ti.png" class="w-8 h-8" alt="TI"></button>
+                        <button onclick="addLetter('DI')" class="keyboard-key"><img src="surat/di.png" class="w-8 h-8" alt="DI"></button>
+                        <button onclick="addLetter('NI')" class="keyboard-key"><img src="surat/ni.png" class="w-8 h-8" alt="NI"></button>
+                        <button onclick="addLetter('PI')" class="keyboard-key"><img src="surat/pi.png" class="w-8 h-8" alt="PI"></button>
+                        <button onclick="addLetter('BI')" class="keyboard-key"><img src="surat/bi.png" class="w-8 h-8" alt="BI"></button>
+                        <button onclick="addLetter('MI')" class="keyboard-key"><img src="surat/mi.png" class="w-8 h-8" alt="MI"></button>
+                        <button onclick="addLetter('YI')" class="keyboard-key"><img src="surat/yi.png" class="w-8 h-8" alt="YI"></button>
+
+                        <!-- Third Row -->
+                        <button onclick="addLetter('KU')" class="keyboard-key"><img src="surat/ku.png" class="w-8 h-8" alt="KU"></button>
+                        <button onclick="addLetter('GU')" class="keyboard-key"><img src="surat/gu.png" class="w-8 h-8" alt="GU"></button>
+                        <button onclick="addLetter('NGU')" class="keyboard-key"><img src="surat/ngu.png" class="w-8 h-8" alt="NGU"></button>
+                        <button onclick="addLetter('TU')" class="keyboard-key"><img src="surat/tu.png" class="w-8 h-8" alt="TU"></button>
+                        <button onclick="addLetter('DU')" class="keyboard-key"><img src="surat/du.png" class="w-8 h-8" alt="DU"></button>
+                        <button onclick="addLetter('NU')" class="keyboard-key"><img src="surat/nu.png" class="w-8 h-8" alt="NU"></button>
+                        <button onclick="addLetter('PU')" class="keyboard-key"><img src="surat/pu.png" class="w-8 h-8" alt="PU"></button>
+                        <button onclick="addLetter('BU')" class="keyboard-key"><img src="surat/bu.png" class="w-8 h-8" alt="BU"></button>
+                        <button onclick="addLetter('MU')" class="keyboard-key"><img src="surat/mu.png" class="w-8 h-8" alt="MU"></button>
+                        <button onclick="addLetter('YU')" class="keyboard-key"><img src="surat/yu.png" class="w-8 h-8" alt="YU"></button>
+
+                        <!-- Fourth Row -->
+                        <button onclick="addLetter('RA')" class="keyboard-key"><img src="surat/ra.png" class="w-8 h-8" alt="RA"></button>
+                        <button onclick="addLetter('LA')" class="keyboard-key"><img src="surat/la.png" class="w-8 h-8" alt="LA"></button>
+                        <button onclick="addLetter('WA')" class="keyboard-key"><img src="surat/wa.png" class="w-8 h-8" alt="WA"></button>
+                        <button onclick="addLetter('SA')" class="keyboard-key"><img src="surat/sa.png" class="w-8 h-8" alt="SA"></button>
+                        <button onclick="addLetter('HA')" class="keyboard-key"><img src="surat/ha.png" class="w-8 h-8" alt="HA"></button>
+                        <button onclick="addLetter('RI')" class="keyboard-key"><img src="surat/ri.png" class="w-8 h-8" alt="RI"></button>
+                        <button onclick="addLetter('LI')" class="keyboard-key"><img src="surat/li.png" class="w-8 h-8" alt="LI"></button>
+                        <button onclick="addLetter('WI')" class="keyboard-key"><img src="surat/wi.png" class="w-8 h-8" alt="WI"></button>
+                        <button onclick="addLetter('SI')" class="keyboard-key"><img src="surat/si.png" class="w-8 h-8" alt="SI"></button>
+                        <button onclick="addLetter('HI')" class="keyboard-key"><img src="surat/hi.png" class="w-8 h-8" alt="HI"></button>
+                    </div>
+
+                    <!-- Bottom Row -->
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button onclick="addLetter(' ')" class="keyboard-key bg-gray-700">Space</button>
+                        <button onclick="translateText()" class="keyboard-key bg-green-600">Translate</button>
                     </div>
                 </div>
             </div>
-
-            <!-- Backspace and Translate Buttons -->
-            <div class="flex justify-between mb-6">
-                <button class="bg-red-500 text-white py-2 px-4 rounded-full" onclick="backspace()">Backspace</button>
-                <button class="bg-green-500 text-white py-2 px-4 rounded-full" onclick="translateText()">Translate</button>
-            </div>
-
-            <!-- Translated Text -->
-            <div id="translated_text"></div>
         </div>
     </div>
 
     <!-- Footer -->
-    <div class="text-center py-4 bg-gray-200">
-        <p class="text-sm text-gray-600">&copy; 2025 Mangyan Translator | All rights reserved</p>
-    </div>
+    <footer class="bg-green-600 text-white mt-8">
+        <div class="container mx-auto px-4 py-6">
+            <p class="text-center">&copy; 2025 Mangyan Translator | All rights reserved</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        function addLetter(letter) {
+            const inputText = document.getElementById('input_text');
+            const cursorPos = inputText.selectionStart;
+            const textBefore = inputText.value.substring(0, cursorPos);
+            const textAfter = inputText.value.substring(cursorPos);
+
+            inputText.value = textBefore + letter + textAfter;
+            inputText.focus();
+            inputText.setSelectionRange(cursorPos + letter.length, cursorPos + letter.length);
+        }
+
+        function backspace() {
+            const inputText = document.getElementById('input_text');
+            const cursorPos = inputText.selectionStart;
+            const textBefore = inputText.value.substring(0, cursorPos - 1);
+            const textAfter = inputText.value.substring(cursorPos);
+
+            inputText.value = textBefore + textAfter;
+            inputText.focus();
+            inputText.setSelectionRange(cursorPos - 1, cursorPos - 1);
+        }
+
+        async function translateText() {
+            const inputText = document.getElementById('input_text').value;
+            const translatedDiv = document.getElementById('translated_text');
+
+            try {
+                const response = await fetch('get_translation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'text=' + encodeURIComponent(inputText)
+                });
+
+                const data = await response.json();
+                translatedDiv.textContent = data.translation || 'Translation not found';
+            } catch (error) {
+                translatedDiv.textContent = 'Error during translation';
+                console.error('Translation error:', error);
+            }
+        }
+
+        // Add keyboard support
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace') {
+                backspace();
+            } else if (e.key === 'Enter') {
+                translateText();
+            }
+        });
+    </script>
 </body>
 </html>
